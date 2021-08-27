@@ -1,37 +1,23 @@
 import {
-  asyncScheduler,
   BehaviorSubject,
   from,
   map,
   mergeMap,
   NEVER,
-  Observable,
-  observeOn,
   of,
-  retry
+  retry,
+  takeWhile
 } from "rxjs";
-import * as readline from "readline";
 import * as SocketImp from "./SocketImp";
 import * as SocketIOImp from "./SocketIOImp";
 import { log } from "./log";
 import { SyncMessenger } from "../src";
+import { closeQuestion, question } from "./question";
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
-function question(query: string) {
-  return new Observable<string>((o) => {
-    rl.question(query, (ans) => {
-      o.next(ans);
-      o.complete();
-    });
-  });
-}
+const loop = new BehaviorSubject(true);
 
 // prettier-ignore
-question("type: 1 ... net.Socket / 2 ... socket.io\n")
+question("type: 1 ... net.Socket / 2 ... socket.io\n> ")
 .pipe(mergeMap((ans) => {
   switch(ans){
     case "1": return of(new SocketImp.Client());
@@ -52,49 +38,68 @@ question("type: 1 ... net.Socket / 2 ... socket.io\n")
   });
   
   messenger.onSolcitedMessage((index, data) => {
+    if(data =="bals"){
+      breakLoop();
+    }
     log.info("onSolcitedMessage", index, data);
-    messenger.emitSolicitedResponse(index, data);
+    messenger.emitSolicitedResponse(index, data)
+    .then(() => {
+      if(data == "bals"){
+        messenger.goodbye();
+      }
+    });
   });
   
+  // prettier-ignore
   console.info(
-    " 1/(message) : send solicited message\n" +
-    " 2/(message) : send unsolicited message\n"+
-    " 3/ : debug disconnect\n" +
-    " others : goodbye\n"
+    "(message)  : send (message) as a solicited \n" +
+    "-(message) : send (message) as an unsolicited message\n"+
+    "/          : disconnect\n" +
+    "bals       : finish messenger"
   );
 
-  const loop = new BehaviorSubject<void>(void 0);
-  return loop
-  .pipe(observeOn(asyncScheduler))
+  function breakLoop() {
+    closeQuestion();
+    setTimeout(() => {
+      loop.next(false);
+      loop.complete();
+    });
+  }  
+
+  // prettier-ignore
+  return loop.asObservable()
+  .pipe(takeWhile(bContinue => bContinue))
   .pipe(mergeMap(() => {
-    return question("input > ");
+    return question("> ");
   }))
   .pipe(mergeMap((command) => {
-    const m = command.match(/^([123])\/(.*)$/);
-    if(m){
-      switch(m[1]){
-        case "1": {
-          return from(messenger.emitSolicitedMessageAndWaitResponse(m[2]))
-          .pipe(map((resp) => {
-            log.info("solicited response", resp);
-          }));
-        }
-        case "2": {
-          return from(messenger.emitUnsolicitedMessage(m[2]));
-        }
-        case "3": {
-          client.debugDisconnect();
-          return of(void 0);
-        }
-      }
+    if(command == "bals"){
+      breakLoop();
+      return from(messenger.emitSolicitedMessageAndWaitResponse("bals"))
+      .pipe(map(() => {
+        messenger.goodbye();
+        return NEVER;
+      }));
     }
-    messenger.goodbye();
-    rl.close();
-    loop.complete();
-    return NEVER;
-  }))
-  .pipe(map(() => {
-    loop.next(void 0);
+    else if(command == "/"){
+      client.debugDisconnect();
+      return of(void 0);
+    }
+    else if(command.startsWith("-")){
+      return from(messenger.emitUnsolicitedMessage(command.substr(1)))
+      .pipe(map(() => {
+        log.info("completed sending an unsolicited message");
+      }));
+    }
+    else{
+      return from(messenger.emitSolicitedMessageAndWaitResponse(command))
+      .pipe(map((resp) => {
+        log.info("solicited response", resp);
+      }));
+    }
   }))
 }))
-.subscribe();
+.subscribe({
+  next: () => loop.next(true),
+  complete: () =>  process.exit()
+});

@@ -16,7 +16,7 @@ export class Server implements ServerLike {
         socket.on("close", () => {
           log.info("socket closed");
         });
-        handler(new Connection(socket));
+        handler(new Connection(socket, () => socket.removeAllListeners()));
       }
     });
   }

@@ -14,9 +14,14 @@ export class Client implements ClientLike {
     socket.on("connect", () => {
       log.info("connected");
       this.m_currentSocket = socket;
-      onConnected(new Connection(socket));
+      onConnected(new Connection(socket, () => socket.off()));
     });
     socket.on("error", (err) => {
+      log.error("error", err);
+      onConnected(undefined);
+      socket.offAny();
+    });
+    socket.on("connect_error", (err) => {
       log.error("error", err);
       onConnected(undefined);
     });

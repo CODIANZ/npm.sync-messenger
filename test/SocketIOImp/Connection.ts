@@ -5,13 +5,15 @@ import { log } from "../log";
 import { SocketIOEssential } from "./SocketIOEssential";
 
 export class Connection implements ConnectionLike {
-  private m_socket?: SocketIOEssential;
+  private m_socket: SocketIOEssential;
   private m_data = new Subject<Buffer>();
   private m_closed = new Subject<void>();
   private m_sg = new rx.SubscriptionGroup(log);
+  private m_cleanupListners: () => void;
 
-  constructor(socket: SocketIOEssential) {
+  constructor(socket: SocketIOEssential, cleanupListners: () => void) {
     this.m_socket = socket;
+    this.m_cleanupListners = cleanupListners;
     this.m_socket.on("$SyncMessenger", (data) => {
       this.m_data.next(data);
     });
@@ -57,10 +59,7 @@ export class Connection implements ConnectionLike {
   }
 
   finalize(): void {
-    if (this.m_socket) {
-      this.m_socket?.removeAllListeners?.();
-      this.m_socket = undefined;
-    }
+    this.m_cleanupListners();
     this.m_sg.unsubscribeAll();
   }
 }
