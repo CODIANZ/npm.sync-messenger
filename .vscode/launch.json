@@ -1,0 +1,36 @@
+{
+  // IntelliSense を使用して利用可能な属性を学べます。
+  // 既存の属性の説明をホバーして表示します。
+  // 詳細情報は次を確認してください: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "pwa-node",
+      "request": "launch",
+      "name": "server",
+      "runtimeArgs": ["--nolazy", "-r", "ts-node/register"], 
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "env": {
+        "TS_NODE_PROJECT": "${workspaceFolder}/tsconfig.json"
+      },
+      "console": "integratedTerminal",
+      "program": "${workspaceFolder}/test/server.ts",
+    },
+    {
+      "type": "pwa-node",
+      "request": "launch",
+      "name": "client",
+      "runtimeArgs": ["--nolazy", "-r", "ts-node/register"], 
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "env": {
+        "TS_NODE_PROJECT": "${workspaceFolder}/tsconfig.json"
+      },
+      "console": "integratedTerminal",
+      "program": "${workspaceFolder}/test/client.ts",
+    }
+  ]
+}

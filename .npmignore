@@ -1,0 +1,5 @@
+.vscode/
+dist/test/
+src/
+test/
+tsconfig.json
