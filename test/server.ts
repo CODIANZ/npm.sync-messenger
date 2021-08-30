@@ -34,7 +34,7 @@ function addMessenger(messenger: SyncMessenger) {
     log.info("onSolcitedMessage", index, data);
     messenger.emitSolicitedResponse(index, data).then(() => {
       if (data == "bals") {
-        messenger.goodbye();
+        messenger.dispose();
         delete messengers[messenger.SessionId];
       }
     });
@@ -65,7 +65,7 @@ loop.asObservable()
     .map((messenger) => {
       messenger.emitSolicitedMessageAndWaitResponse("bals")
       .then(() => {
-        messenger.goodbye();
+        messenger.dispose();
         delete messengers[messenger.SessionId];
       })
     })

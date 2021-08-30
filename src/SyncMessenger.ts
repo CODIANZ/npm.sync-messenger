@@ -171,17 +171,17 @@ export class SyncMessenger {
     return ss;
   }
 
-  public goodbye() {
-    this.log.info("goodbye");
+  public dispose() {
+    this.log.info("dispose");
     if (this.m_sessionId in SyncMessenger.s_sockets) {
       delete SyncMessenger.s_sockets[this.m_sessionId];
-      this.goodbyeInternal("goodbye");
+      this.disposeInternal("dispose");
     } else {
-      this.goodbyeInternal("goodbye (unmanaged session)");
+      this.disposeInternal("dispose (unmanaged session)");
     }
   }
 
-  private goodbyeInternal(reason: string) {
+  private disposeInternal(reason: string) {
     this.m_connection.finalize();
     this.m_sg.unsubscribeAll();
     this.m_ackMessage.error(new Error(reason));
@@ -337,7 +337,7 @@ export class SyncMessenger {
       }, 1000 * this.m_config.retryIntervalSeconds);
 
       const timer_timeout = setTimeout(() => {
-        this.goodbyeInternal(`timeout ${this.m_config.timeoutSeconds} sec.`);
+        this.disposeInternal(`timeout ${this.m_config.timeoutSeconds} sec.`);
         reject("timeout");
       }, 1000 * this.m_config.timeoutSeconds);
 

@@ -45,7 +45,7 @@ question("type: 1 ... net.Socket / 2 ... socket.io\n> ")
     messenger.emitSolicitedResponse(index, data)
     .then(() => {
       if(data == "bals"){
-        messenger.goodbye();
+        messenger.dispose();
       }
     });
   });
@@ -77,7 +77,7 @@ question("type: 1 ... net.Socket / 2 ... socket.io\n> ")
       breakLoop();
       return from(messenger.emitSolicitedMessageAndWaitResponse("bals"))
       .pipe(map(() => {
-        messenger.goodbye();
+        messenger.dispose();
         return NEVER;
       }));
     }
