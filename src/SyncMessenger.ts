@@ -40,9 +40,9 @@ function isSyncMessengerData(data: unknown): data is syncMessengerData_t {
 }
 
 type config_t = {
-  timeoutSeconds: number;
-  retryIntervalSeconds: number;
-  log: loglike.LogLike;
+  readonly timeoutSeconds: number;
+  readonly retryIntervalSeconds: number;
+  readonly log: loglike.LogLike;
 };
 
 export class SyncMessenger {
@@ -57,11 +57,13 @@ export class SyncMessenger {
     return null;
   }
 
-  public static DefaultConfig: config_t = {
-    timeoutSeconds: 15,
-    retryIntervalSeconds: 5,
-    log: loglike.Null
-  };
+  public static get DefaultConfig(): config_t {
+    return {
+      timeoutSeconds: 15,
+      retryIntervalSeconds: 5,
+      log: loglike.Null
+    };
+  }
 
   private m_sg: rx.SubscriptionGroup;
   private m_messageObservableSubscription?: Subscription;
