@@ -171,6 +171,7 @@ export class SyncMessenger {
       bFirst = false;
     });
 
+    SyncMessenger.s_sockets[ss.SessionId] = ss;
     return ss;
   }
 
