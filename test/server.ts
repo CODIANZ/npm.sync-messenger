@@ -7,6 +7,7 @@ import {
 } from "rxjs";
 import * as SocketImp from "./SocketImp";
 import * as SocketIOImp from "./SocketIOImp";
+import * as WebSocketImp from "./WebSocketImp";
 import { log } from "./log";
 import { question } from "./question";
 import { SyncMessenger } from "../src/";
@@ -18,6 +19,10 @@ SyncMessenger.serverConnection({ log }, new SocketImp.Server(), (msgr) => {
 });
 
 SyncMessenger.serverConnection({ log }, new SocketIOImp.Server(), (msgr) => {
+  addMessenger(msgr);
+});
+
+SyncMessenger.serverConnection({ log }, new WebSocketImp.Server(), (msgr) => {
   addMessenger(msgr);
 });
 

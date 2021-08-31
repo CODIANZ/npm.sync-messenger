@@ -10,6 +10,7 @@ import {
 } from "rxjs";
 import * as SocketImp from "./SocketImp";
 import * as SocketIOImp from "./SocketIOImp";
+import * as WebSocketImp from "./WebSocketImp";
 import { log } from "./log";
 import { SyncMessenger } from "../src";
 import { closeQuestion, question } from "./question";
@@ -17,11 +18,12 @@ import { closeQuestion, question } from "./question";
 const loop = new BehaviorSubject(true);
 
 // prettier-ignore
-question("type: 1 ... net.Socket / 2 ... socket.io\n> ")
+question("type: 1 ... net.Socket / 2 ... socket.io / 3 ... WebSocket\n> ")
 .pipe(mergeMap((ans) => {
   switch(ans){
     case "1": return of(new SocketImp.Client());
     case "2": return of(new SocketIOImp.Client());
+    case "3": return of(new WebSocketImp.Client());
   }
   throw new Error("invalid type");
 }))
