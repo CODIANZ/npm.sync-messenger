@@ -42,6 +42,12 @@ type config_t = {
   readonly log: loglike.LogLike;
 };
 
+export class Timeout extends Error {
+  constructor(...params: any[]) {
+    super(...params);
+  }
+}
+
 export class SyncMessenger {
   private static s_sockets: { [_: string]: SyncMessenger } = {};
   public static get Sockets() {
@@ -341,8 +347,9 @@ export class SyncMessenger {
       }, 1000 * this.m_config.retryIntervalSeconds);
 
       const timer_timeout = setTimeout(() => {
-        this.disposeInternal(`timeout ${this.m_config.timeoutSeconds} sec.`);
-        reject("timeout");
+        const err = new Timeout(`timeout ${this.m_config.timeoutSeconds} sec.`);
+        this.disposeInternal(err);
+        reject(err);
       }, 1000 * this.m_config.timeoutSeconds);
 
       this.m_sg.append(
