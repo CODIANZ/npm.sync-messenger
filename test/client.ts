@@ -100,6 +100,5 @@ question("type: 1 ... net.Socket / 2 ... socket.io\n> ")
   }))
 }))
 .subscribe({
-  next: () => loop.next(true),
-  complete: () =>  process.exit()
+  next: () => loop.next(true)
 });

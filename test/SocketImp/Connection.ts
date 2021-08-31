@@ -62,6 +62,8 @@ export class Connection implements ConnectionLike {
       this.m_socket?.destroy();
       this.m_socket = undefined;
     }
+    this.m_data.complete();
+    this.m_closed.complete();
     this.m_sg.unsubscribeAll();
   }
 }
