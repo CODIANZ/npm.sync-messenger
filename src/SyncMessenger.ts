@@ -57,7 +57,6 @@ export class SyncMessenger {
     if (sessionId in this.Sockets) {
       return this.Sockets[sessionId];
     }
-    return null;
   }
 
   public static get DefaultConfig(): config_t {
@@ -248,21 +247,21 @@ export class SyncMessenger {
     });
   }
 
-  public onNotice(f: (body: string) => void) {
+  public onNotice(handler: (body: string) => void) {
     // prettier-ignore
     this.m_sg.append(
         "onNotice",
         this.m_message
         .pipe(map((x) => {
           if (x.message_type != "notice") return "skip";
-          f(x.body);
+          handler(x.body);
           return x;
         }))
     );
   }
 
   public onRequest(
-    f: (
+    handler: (
       requestBody: string,
       responseEmitter: (responseBody: string) => Promise<void>
     ) => void
@@ -273,7 +272,7 @@ export class SyncMessenger {
       this.m_message
       .pipe(map((x) => {
         if (x.message_type != "request") return "skip";
-        f(x.body, (responseBody: string) => {
+        handler(x.body, (responseBody: string) => {
           return this.responseEmitter(x.index, responseBody);
         });
         return x;
