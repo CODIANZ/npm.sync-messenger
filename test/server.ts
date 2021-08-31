@@ -1,13 +1,9 @@
 import {
   asyncScheduler,
   BehaviorSubject,
-  from,
   map,
   mergeMap,
-  NEVER,
-  observeOn,
-  of,
-  retry
+  observeOn
 } from "rxjs";
 import * as SocketImp from "./SocketImp";
 import * as SocketIOImp from "./SocketIOImp";
@@ -26,14 +22,14 @@ SyncMessenger.serverConnection({ log }, new SocketIOImp.Server(), (msgr) => {
 });
 
 function addMessenger(messenger: SyncMessenger) {
-  messenger.onUnsolicitedMessage((data) => {
-    log.info("onUnsolicitedMessage", data);
+  messenger.onNotice((noticeBody) => {
+    log.info("onNotice", noticeBody);
   });
 
-  messenger.onSolcitedMessage((index, data) => {
-    log.info("onSolcitedMessage", index, data);
-    messenger.emitSolicitedResponse(index, data).then(() => {
-      if (data == "bals") {
+  messenger.onRequest((requestBody, responseEmitter) => {
+    log.info("onRequest", requestBody);
+    responseEmitter(`receipt -> ${requestBody}`).then(() => {
+      if (requestBody == "bals") {
         messenger.dispose();
         delete messengers[messenger.SessionId];
       }
@@ -45,8 +41,8 @@ function addMessenger(messenger: SyncMessenger) {
 
 // prettier-ignore
 console.info(
-  "(message)  : send (message) as a solicited \n" +
-  "-(message) : send (message) as an unsolicited message\n" +
+  "(message)  : send request \n" +
+  "-(message) : send notice\n" +
   "bals       : finish messenger"
 );
 
@@ -63,7 +59,7 @@ loop.asObservable()
     Object.keys(messengers)
     .map(idx => messengers[idx])
     .map((messenger) => {
-      messenger.emitSolicitedMessageAndWaitResponse("bals")
+      messenger.emitRequest("bals")
       .then(() => {
         messenger.dispose();
         delete messengers[messenger.SessionId];
@@ -74,16 +70,15 @@ loop.asObservable()
     Object.keys(messengers)
     .map(idx => messengers[idx])
     .map((messenger) => {
-      messenger.emitUnsolicitedMessage(command.substr(1));
+      messenger.emitNotice(command.substr(1));
     });
   }
   else{
     Object.keys(messengers)
     .map(idx => messengers[idx])
     .map((messenger) => {
-      messenger.emitSolicitedMessageAndWaitResponse(command)
+      messenger.emitRequest(command)
       .then(() => {
-
       });
     });
   }

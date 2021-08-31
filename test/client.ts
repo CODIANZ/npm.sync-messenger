@@ -33,18 +33,18 @@ question("type: 1 ... net.Socket / 2 ... socket.io\n> ")
   };
 }))
 .pipe(mergeMap(({client, messenger}) => {
-  messenger.onUnsolicitedMessage((data) => {
-    log.info("onUnsolicitedMessage", data);
+  messenger.onNotice((noticeBody) => {
+    log.info("onNotice", noticeBody);
   });
   
-  messenger.onSolcitedMessage((index, data) => {
-    if(data =="bals"){
+  messenger.onRequest((requestBody, responseEmitter) => {
+    if(requestBody =="bals"){
       breakLoop();
     }
-    log.info("onSolcitedMessage", index, data);
-    messenger.emitSolicitedResponse(index, data)
+    log.info("onRequest", requestBody);
+    responseEmitter(`receipt -> ${requestBody}`)
     .then(() => {
-      if(data == "bals"){
+      if(requestBody == "bals"){
         messenger.dispose();
       }
     });
@@ -52,8 +52,8 @@ question("type: 1 ... net.Socket / 2 ... socket.io\n> ")
   
   // prettier-ignore
   console.info(
-    "(message)  : send (message) as a solicited \n" +
-    "-(message) : send (message) as an unsolicited message\n"+
+    "(message)  : send request \n" +
+    "-(message) : send notice\n"+
     "/          : disconnect\n" +
     "bals       : finish messenger"
   );
@@ -75,7 +75,7 @@ question("type: 1 ... net.Socket / 2 ... socket.io\n> ")
   .pipe(mergeMap((command) => {
     if(command == "bals"){
       breakLoop();
-      return from(messenger.emitSolicitedMessageAndWaitResponse("bals"))
+      return from(messenger.emitRequest("bals"))
       .pipe(map(() => {
         messenger.dispose();
         return NEVER;
@@ -86,15 +86,15 @@ question("type: 1 ... net.Socket / 2 ... socket.io\n> ")
       return of(void 0);
     }
     else if(command.startsWith("-")){
-      return from(messenger.emitUnsolicitedMessage(command.substr(1)))
+      return from(messenger.emitNotice(command.substr(1)))
       .pipe(map(() => {
-        log.info("completed sending an unsolicited message");
+        log.info("completed sending a request");
       }));
     }
     else{
-      return from(messenger.emitSolicitedMessageAndWaitResponse(command))
-      .pipe(map((resp) => {
-        log.info("solicited response", resp);
+      return from(messenger.emitRequest(command))
+      .pipe(map((responseBody) => {
+        log.info("received response", responseBody);
       }));
     }
   }))

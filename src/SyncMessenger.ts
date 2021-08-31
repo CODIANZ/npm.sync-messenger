@@ -8,16 +8,13 @@ import * as rx from "@codianz/rx";
 import * as loglike from "@codianz/loglike";
 import { ReconnectableConnection } from "./ReconnectableConnection";
 
-type messageType_t =
-  | "solicitedMessage"
-  | "solicitedResponse"
-  | "unsolicitedMessage";
+type messageType_t = "request" | "response" | "notice";
 
 type message_t = {
   kind: "$message";
   index: number /* "number" is it sender specify sequential  */;
-  message_type: messageType_t /* "type" is a message "solicited" or "unsolicited" */;
-  solicitedMessgeIndex?: number /* the number which is the index of "solicitedMessage" for "solicitedResponse" */;
+  message_type: messageType_t;
+  requestIndex?: number /* the number which is the index of "Request" for "Response" */;
   body: string /* main contents in a message */;
 };
 
@@ -75,9 +72,9 @@ export class SyncMessenger {
   private m_ackMessage = new Subject<ack_t>();
   private m_message = new Subject<message_t>();
 
-  private m_pendingSolicitedMessages: { [_: number]: message_t } = {};
-  public get PendingSolicitedMessages() {
-    return this.m_pendingSolicitedMessages;
+  private m_pendingRequests: { [_: number]: message_t } = {};
+  public get PendingRequests() {
+    return this.m_pendingRequests;
   }
 
   public get SessionId() {
@@ -201,11 +198,11 @@ export class SyncMessenger {
     this.log.info(`ctor sessionId = ${sessionId}`);
     this.resetObservers(messageObservable);
     this.m_sg.append(
-      "tanking solicitedMessage",
+      "tanking request",
       this.m_message.pipe(
         map((x) => {
-          if (x.message_type == "solicitedMessage") {
-            this.m_pendingSolicitedMessages[x.index] = x;
+          if (x.message_type == "request") {
+            this.m_pendingRequests[x.index] = x;
           }
         })
       )
@@ -239,55 +236,62 @@ export class SyncMessenger {
     });
   }
 
-  public onUnsolicitedMessage(f: (body: string) => void) {
+  public onNotice(f: (body: string) => void) {
     // prettier-ignore
     this.m_sg.append(
-        "onUnsolicitedMessage",
+        "onNotice",
         this.m_message
         .pipe(map((x) => {
-          if (x.message_type != "unsolicitedMessage") return "skip";
+          if (x.message_type != "notice") return "skip";
           f(x.body);
           return x;
         }))
     );
   }
 
-  public onSolcitedMessage(f: (index: number, body: any) => void) {
+  public onRequest(
+    f: (
+      requestBody: string,
+      responseEmitter: (responseBody: string) => Promise<void>
+    ) => void
+  ) {
     // prettier-ignore
     this.m_sg.append(
-        "onSolcitedMessage",
-        this.m_message
-        .pipe(map((x) => {
-          if (x.message_type != "solicitedMessage") return "skip";
-          f(x.index, x.body);
-          return x;
-        }))
+      "onRequest",
+      this.m_message
+      .pipe(map((x) => {
+        if (x.message_type != "request") return "skip";
+        f(x.body, (responseBody: string) => {
+          return this.responseEmitter(x.index, responseBody);
+        });
+        return x;
+      }))
     );
   }
 
-  public emitUnsolicitedMessage(body?: any) {
-    return this.emitInternal(body, "unsolicitedMessage");
+  public emitNotice(body: string) {
+    return this.emitInternal(body, "notice");
   }
 
-  public emitSolicitedResponse(index: number, body?: any) {
-    if (index in this.m_pendingSolicitedMessages) {
-      delete this.m_pendingSolicitedMessages[index];
+  private responseEmitter(index: number, body: string) {
+    if (index in this.m_pendingRequests) {
+      delete this.m_pendingRequests[index];
     } else {
-      this.log.error(`emitSolicitedResponse missing index ${index}`);
+      this.log.error(`responseEmitter missing index ${index}`);
     }
-    return this.emitInternal(body, "solicitedResponse", index);
+    return this.emitInternal(body, "response", index);
   }
 
-  public emitSolicitedMessageAndWaitResponse(body?: unknown) {
-    return new Promise<unknown>((resolve, reject) => {
+  public emitRequest(body: string) {
+    return new Promise<string>((resolve, reject) => {
       const targetIndex = this.m_messageIndex + 1;
       // prettier-ignore
       this.m_sg.append(
-        "wait solicitedResponse",
+        "wait Response",
         this.m_message
         .pipe(mergeMap((x) => {
-          if (x.message_type != "solicitedResponse") return NEVER;
-          if (x.solicitedMessgeIndex != targetIndex) return NEVER;
+          if (x.message_type != "response") return NEVER;
+          if (x.requestIndex != targetIndex) return NEVER;
           return of(x);
         }))
         .pipe(take(1))
@@ -301,22 +305,22 @@ export class SyncMessenger {
       );
 
       // prettier-ignore
-      this.emitInternal(body, "solicitedMessage")
+      this.emitInternal(body, "request")
       .then(() => {
-        this.log.info("emitSolicitedMessageAndWaitResponse emit success");
+        this.log.info("emitRequest emit success");
       })
       .catch((err) => {
         this.log.error(
-          `emitSolicitedMessageAndWaitResponse emit error ${err}`
+          `emitRequest emit error ${err}`
         );
       });
     });
   }
 
   private emitInternal(
-    body: any | undefined,
+    body: string,
     type: messageType_t,
-    solicitedMessgeIndex?: number
+    requestIndex?: number
   ) {
     this.m_messageIndex++;
     const index = this.m_messageIndex;
@@ -327,7 +331,7 @@ export class SyncMessenger {
         kind: "$message",
         index: index,
         message_type: type,
-        solicitedMessgeIndex: solicitedMessgeIndex,
+        requestIndex: requestIndex,
         body: body
       };
 
