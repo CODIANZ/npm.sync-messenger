@@ -23,7 +23,7 @@ question("type: 1 ... net.Socket / 2 ... socket.io\n> ")
     case "1": return of(new SocketImp.Client());
     case "2": return of(new SocketIOImp.Client());
   }
-  throw Error("invalid type");
+  throw new Error("invalid type");
 }))
 .pipe(retry())
 .pipe(map((client) => {

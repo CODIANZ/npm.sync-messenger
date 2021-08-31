@@ -22,6 +22,6 @@ export class Client implements ClientLike {
 
   public debugDisconnect() {
     log.info("Client.debugDisconnect");
-    this.m_currentSocket?.destroy(Error("debugDisconnect"));
+    this.m_currentSocket?.destroy(new Error("debugDisconnect"));
   }
 }

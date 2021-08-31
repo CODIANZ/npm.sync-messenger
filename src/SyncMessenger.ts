@@ -178,17 +178,22 @@ export class SyncMessenger {
     this.log.info("dispose");
     if (this.m_sessionId in SyncMessenger.s_sockets) {
       delete SyncMessenger.s_sockets[this.m_sessionId];
-      this.disposeInternal("dispose");
+      this.disposeInternal();
     } else {
-      this.disposeInternal("dispose (unmanaged session)");
+      this.disposeInternal(new Error(`unmapped session ${this.m_sessionId}`));
     }
   }
 
-  private disposeInternal(reason: string) {
+  private disposeInternal(err?: Error) {
     this.m_connection.finalize();
+    if (err) {
+      this.m_ackMessage.error(err);
+      this.m_message.error(err);
+    } else {
+      this.m_ackMessage.complete();
+      this.m_message.complete();
+    }
     this.m_sg.unsubscribeAll();
-    this.m_ackMessage.error(new Error(reason));
-    this.m_message.error(new Error(reason));
   }
 
   private constructor(
