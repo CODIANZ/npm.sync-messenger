@@ -1,4 +1,6 @@
-# 概要
+# SyncMessenger
+
+## 概要
 
 通信処理で発生するエラーは多岐に渡りますが、一般的なアプリケーションではエラーの種類がどうあれ、結果的に送信メッセージが「届いたのか？」それとも「届いていないのか？」が重要です。つまり、届いていないならエラーになります。もちろん、通信で発生したエラーも重要です。しかし、通信環境というのは復旧する可能性がある場合があり、その復旧処理を想定すると内部が複雑化します。
 
@@ -6,13 +8,14 @@
 
 これらを問題を解決すべく、通信処理パターンを `SyncMessenger` で定義し、通信処理を抽象化しました。
 
-## 基本のコンセプト
+### 基本のコンセプト
 
 - 「届いたのか？」それとも「届いていないのか？」にフォーカスする
 - 届いていないようならリトライする（届いている可能性もあるけど確定的じゃない状態）
 - リトライが一定時間継続したらエラー（ `SyncMessenger` が発する唯一のエラーです）
+- メッセージ処理の終了はアプリケーションが明示的に `dispose` を呼び出すまで継続する
 
-## SyncMessenger を採用することのメリット
+### SyncMessenger を採用することのメリット
 
 - 通信処理を抽象化
 - 通信メッセージの到達保証
@@ -22,49 +25,49 @@
 
 なお、内部処理では `rxjs` を使用していますが、I/F は `Promise` を使用しています。
 
-# SyncMessenger
+## SyncMessenger
 
-## serverConnection
+### serverConnection
 
 サーバ処理を開始します。クライアントからの接続要求が入ると、 `SyncMessenger` を引数としてコールバック関数が呼び出されます。
 
-## clinentConnection
+### clinentConnection
 
 クライアント用の関数です。接続を開始して `SyncMessenger` を返却します。
 
-## onNotice
+### onNotice
 
 対向システムからの通知を受信すると、受信メッセージを引数としてコールバック関数が呼び出されます。
 
-## onRequest
+### onRequest
 
 対向システムからの要求を受信すると、受信メッセージと応答関数を引数としてコールバック関数が呼び出されます。コールバック関数内では応答関数を呼び出す必要があります。なお、応答関数は `Promise` を返却され、応答が到達すると resolve します。
 
-## emitNotice
+### emitNotice
 
 通知を送信します。通知が到達すると `Promise` は resolve します。
 
-## emitRequest
+### emitRequest
 
 要求を送信します。要求に対する応答を受信すると `Promise` は resolve します。
 
-## PendingRequests
+### PendingRequests
 
 要求に対する応答待ちのメッセージを列挙します。
 
-## dispose
+### dispose
 
 `SyncMessenger` を破棄します。
 
-## SessionId
+### SessionId
 
 `SyncMessenger` が独自で発行したセッション識別子を返却します。
 
-## findBySessionId
+### findBySessionId
 
 セッション識別子から `SyncMessenger` のインスタンスを取得します。
 
-## DefaultConfig
+### DefaultConfig
 
 `SyncMessager` のインスタンス生成時に指定する設定のデフォルト値を返却します。
 
@@ -74,48 +77,48 @@
 | retryIntervalSeconds | 5            | リトライ間隔（秒）                           |
 | log                  | LogLike.Null | LogLike インスタンス                         |
 
-# 抽象化レイヤ
+## 抽象化レイヤ
 
 サーバ、クライアント、通信セッションを抽象化します。
 github リポジトリではテスト実装として `net.Socket` 、 `socket.io` 、 `WebSocket` 用の具象化レイヤを実装していますので参考にしてください。
 
-## ServerLike
+### ServerLike
 
 通信セッションにおけるサーバの抽象化レイヤです。
 サーバとは、対向システムからの通信セッションの接続要求を待機し、接続要求から通信セッションを生成することができるシステムを指します。
 
-### onConnected(handler: (connection: ConnectionLike) => void): void
+#### onConnected(handler: (connection: ConnectionLike) => void): void
 
 対向システムから接続要求が入った際に、その通信セッションから `ConnectionLike` を具象化したクラスを生成し、そのインスタンスを引数として handler() を呼び出してください。
 
-## ClientLike
+### ClientLike
 
 通信セッションにおけるクライアントの抽象化レイヤです。
 クライアントとは、任意のタイミングでサーバに対して通信セッションを生成することができるシステムを指します。
 
-### connect(onConnected: (connection?: ConnectionLike) => void): void
+#### connect(onConnected: (connection?: ConnectionLike) => void): void
 
 通信セッションを構築し、対向システムとの接続が完了したら、その通信セッションから `ConnectionLike` を具象化したクラスを生成し、そのインスタンスを引数として onConnected() を呼び出してください。
 
-## ConnectionLike
+### ConnectionLike
 
 通信セッションの抽象化レイヤです。
 通信セッションを生成する過程はサーバ、クライアントで異なりますが、生成された通信セッションの取り扱いは、サーバ、クライアントで概ね同じであると想定しています。
 
-### setReceiveMessageHandler(handler: (data: string) => void): void
+#### setReceiveMessageHandler(handler: (data: string) => void): void
 
 メッセージを受信した際に、その受信データを引数として handler() を呼び出してください。
 
-### setClosedHandler(handler: () => void): void
+#### setClosedHandler(handler: () => void): void
 
 通信セッションが終了（異常、切断を問わず）した際に、 handler() を呼び出してください。
 
-### emitMessage(data: string): void
+#### emitMessage(data: string): void
 
 メッセージを送信してください。
 なお、この関数でエラー処理は不要です。
 送信したメッセージが到達したことが確認できなければリトライまたはタイムアウトエラーとして取り扱いますが、　`ConnectionLike` の具象化レイヤでは到達を保証する必要はありません。
 
-### finalize(): void
+#### finalize(): void
 
 通信セッションで使用していたリソースの解放を行ってください。
