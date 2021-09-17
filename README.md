@@ -31,7 +31,7 @@
 
 サーバ処理を開始します。クライアントからの接続要求が入ると、 `SyncMessenger` を引数としてコールバック関数が呼び出されます。
 
-### clinentConnection
+### clientConnection
 
 クライアント用の関数です。接続を開始して `SyncMessenger` を返却します。
 
