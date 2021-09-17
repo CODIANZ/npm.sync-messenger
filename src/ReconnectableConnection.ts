@@ -1,4 +1,4 @@
-import { retry, Subject, Subscription } from "rxjs";
+import { Subject, Subscription } from "rxjs";
 import { ClientLike } from "./ClientLike";
 import { ConnectionLike } from "./ConnectionLike";
 

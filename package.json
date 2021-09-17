@@ -1,6 +1,6 @@
 {
   "name": "@codianz/sync-messenger",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Synchronous messaging system that guarantees arrival.",
   "main": "./dist/src/index.js",
   "scripts": {

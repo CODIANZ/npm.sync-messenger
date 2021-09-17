@@ -78,6 +78,13 @@ loop.asObservable()
       messenger.emitNotice(command.substr(1));
     });
   }
+  else if(command.startsWith("/")){
+    Object.keys(messengers)
+    .map(idx => messengers[idx])
+    .map((messenger) => {
+      messenger.emitNotice(command.substr(1));
+    });
+  }
   else{
     Object.keys(messengers)
     .map(idx => messengers[idx])

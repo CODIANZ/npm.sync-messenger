@@ -2,13 +2,19 @@ import * as net from "net";
 import { ClientLike, ConnectionLike } from "../../src";
 import { Connection } from "./Connection";
 import { log } from "../log";
+import { client_option_t } from "../client_option";
 
 export class Client implements ClientLike {
   private m_currentSocket?: net.Socket;
+  private m_option: client_option_t;
+
+  constructor(option: client_option_t) {
+    this.m_option = option;
+  }
 
   connect(onConnected: (connection?: ConnectionLike) => void): void {
     log.info("Client.connect");
-    const socket = net.createConnection({ port: 4000 });
+    const socket = net.createConnection(this.m_option);
     socket.on("connect", () => {
       log.info("connected");
       this.m_currentSocket = socket;
