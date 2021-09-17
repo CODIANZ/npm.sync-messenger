@@ -17,13 +17,15 @@ import { closeQuestion, question } from "./question";
 
 const loop = new BehaviorSubject(true);
 
+const host = "localhost";
+
 // prettier-ignore
 question("type: 1 ... net.Socket / 2 ... socket.io / 3 ... WebSocket\n> ")
 .pipe(mergeMap((ans) => {
   switch(ans){
-    case "1": return of(new SocketImp.Client());
-    case "2": return of(new SocketIOImp.Client());
-    case "3": return of(new WebSocketImp.Client());
+    case "1": return of(new SocketImp.Client({host, port: 4000}));
+    case "2": return of(new SocketIOImp.Client({host, port: 4001}));
+    case "3": return of(new WebSocketImp.Client({host, port: 4002}));
   }
   throw new Error("invalid type");
 }))
@@ -31,7 +33,7 @@ question("type: 1 ... net.Socket / 2 ... socket.io / 3 ... WebSocket\n> ")
 .pipe(map((client) => {
   return {
     client,
-    messenger: SyncMessenger.clinentConnection({log}, client)
+    messenger: SyncMessenger.clientConnection({log}, client)
   };
 }))
 .pipe(mergeMap(({client, messenger}) => {
