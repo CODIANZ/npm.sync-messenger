@@ -49,13 +49,13 @@ export class Timeout extends Error {
 }
 
 export class SyncMessenger {
-  private static s_sockets: { [_: string]: SyncMessenger } = {};
-  public static get Sockets() {
-    return SyncMessenger.s_sockets;
+  private static s_insances: { [_: string]: SyncMessenger } = {};
+  public static get Instances() {
+    return SyncMessenger.s_insances;
   }
   public static findBySessionId(sessionId: string) {
-    if (sessionId in this.Sockets) {
-      return this.Sockets[sessionId];
+    if (sessionId in this.Instances) {
+      return this.Instances[sessionId];
     }
   }
 
@@ -119,8 +119,8 @@ export class SyncMessenger {
         next: (data) => {
           if (data.kind !== "$hello") return;
           const hello = data;
-          if (hello.sessionId in SyncMessenger.s_sockets) {
-            const sm = SyncMessenger.s_sockets[hello.sessionId];
+          if (hello.sessionId in SyncMessenger.s_insances) {
+            const sm = SyncMessenger.s_insances[hello.sessionId];
             sm.m_connection.finalize();
             sm.m_connection = connection;
             sm.resetObservers(messageObservable);
@@ -132,7 +132,7 @@ export class SyncMessenger {
                 hello.sessionId,
                 messageObservable
               );
-              SyncMessenger.s_sockets[hello.sessionId] = sm;
+              SyncMessenger.s_insances[hello.sessionId] = sm;
               onConnect(sm);
             }
           }
@@ -142,7 +142,7 @@ export class SyncMessenger {
   }
 
   /* クライアントからの接続 */
-  public static clinentConnection(
+  public static clientConnection(
     config: Partial<config_t>,
     client: ClientLike
   ) {
@@ -170,14 +170,14 @@ export class SyncMessenger {
       bFirst = false;
     });
 
-    SyncMessenger.s_sockets[ss.SessionId] = ss;
+    SyncMessenger.s_insances[ss.SessionId] = ss;
     return ss;
   }
 
   public dispose() {
     this.log.info("dispose");
-    if (this.m_sessionId in SyncMessenger.s_sockets) {
-      delete SyncMessenger.s_sockets[this.m_sessionId];
+    if (this.m_sessionId in SyncMessenger.s_insances) {
+      delete SyncMessenger.s_insances[this.m_sessionId];
       this.disposeInternal();
     } else {
       this.disposeInternal(new Error(`unmapped session ${this.m_sessionId}`));
